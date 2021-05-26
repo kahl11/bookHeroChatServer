@@ -5,7 +5,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var ws_1 = __importDefault(require("ws"));
 var wss = new ws_1.default.Server({ port: 8000 });
+function noop() { }
+function heartbeat() {
+    this.isAlive = true;
+}
 wss.on('connection', function connection(ws) {
+    ws.isAlive = true;
+    ws.on('pong', heartbeat);
     ws.on('message', function incoming(message) {
         console.log(message);
         try {
@@ -19,4 +25,15 @@ wss.on('connection', function connection(ws) {
         }
     });
     ws.send('Connected');
+});
+var interval = setInterval(function ping() {
+    wss.clients.forEach(function each(ws) {
+        if (ws.isAlive === false)
+            return ws.terminate();
+        ws.isAlive = false;
+        ws.ping(noop);
+    });
+}, 30000);
+wss.on('close', function close() {
+    clearInterval(interval);
 });
