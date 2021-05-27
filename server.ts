@@ -1,3 +1,4 @@
+import WebSocket from 'ws';
 import WS from 'ws';
 
 const wss = new WS.Server({ port: 8000});
@@ -7,13 +8,17 @@ interface MessageType {
   message: string
 }
 
+interface WebSocketExtended extends WebSocket{
+  isAlive: boolean
+}
+
 function noop(){}
 
-function heartbeat(){
+function heartbeat(this: any){
 	this.isAlive = true;
 }
 
-wss.on('connection', function connection(ws: any) {
+wss.on('connection', function connection(ws: WebSocketExtended) {
   ws.isAlive = true;
   ws.on('pong', heartbeat);
 
@@ -34,9 +39,8 @@ wss.on('connection', function connection(ws: any) {
 
 const interval = setInterval(function ping() {
 	wss.clients.forEach(function each(ws){
-		if(ws.isAlive === false) return ws.terminate();
-
-		ws.isAlive = false;
+		if((<WebSocketExtended>ws).isAlive === false) return ws.terminate();
+		(<WebSocketExtended>ws).isAlive = false;
 		ws.ping(noop);
 	});
 }, 30000);
