@@ -15,19 +15,24 @@ wss.on('connection', function connection(ws) {
     ws.on('message', function incoming(message) {
         //wss.clients.forEach((ws) => (console.log(ws)))
         try {
+            console.log('got message: ', message);
             var messageObject = JSON.parse(message);
-            console.log(messageObject);
             if (messageObject.type == "CONNECTION") {
-                var connectionMessage = messageObject.message;
-                console.log("Connection from " + connectionMessage.id);
-                ws.id = connectionMessage.id;
-                var partner = connectionMessage.partner;
-                if (partner in wss.clients) {
-                    ws.partner = (Array.from(wss.clients).filter(function (partner) { return partner.id == ws.partnerId; })[0]);
-                }
-                else {
-                    ws.partner == null;
-                }
+                var connectionMessage_1 = messageObject.message;
+                ws.id = connectionMessage_1.id;
+                console.log("looking for: " + connectionMessage_1.partner);
+                Array.from(wss.clients).map(function (partner) {
+                    console.log("found: " + partner.id);
+                    if (partner.id === connectionMessage_1.partner) {
+                        ws.partner = partner;
+                        partner.partner = ws;
+                    }
+                });
+                //console.log(ws.partner);
+            }
+            else if (messageObject.type == "MESSAGE") {
+                if (ws.partner)
+                    ws.partner.send(message);
             }
         }
         catch (e) {

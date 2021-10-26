@@ -29,22 +29,27 @@ function heartbeat(this: any){
 wss.on('connection', function connection(ws: WebSocketExtended) {
   ws.isAlive = true;
   ws.on('pong', heartbeat);
-
   ws.on('message', function incoming(message: string) {
     //wss.clients.forEach((ws) => (console.log(ws)))
     try{
+	    console.log('got message: ', message);
       let messageObject: MessageType = JSON.parse(message);
-      console.log(messageObject)
       if(messageObject.type == "CONNECTION"){
         let connectionMessage: ConnectionMessage = <ConnectionMessage>messageObject.message;
-        console.log(`Connection from ${connectionMessage.id}`);
         ws.id = connectionMessage.id;
-        let partner = connectionMessage.partner;
-        if(partner in wss.clients){
-          ws.partner = <WebSocketExtended>(Array.from(wss.clients).filter(partner => (<WebSocketExtended>partner).id == ws.partnerId )[0]);
-        }else{
-          ws.partner == null;
-        }
+	console.log("looking for: " + connectionMessage.partner);
+        Array.from(wss.clients).map(partner => { 	
+		console.log("found: "+(<WebSocketExtended>partner).id);
+		if( (<WebSocketExtended>partner).id === connectionMessage.partner){
+			ws.partner = <WebSocketExtended>partner;
+			(<WebSocketExtended>partner).partner = ws;
+		}
+	}
+       );
+	//console.log(ws.partner);
+      }else if(messageObject.type == "MESSAGE"){
+	      if(ws.partner)
+	      		ws.partner.send(message);
       }
     } catch(e: any){
       console.log(e.message);
